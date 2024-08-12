@@ -53,6 +53,10 @@ android {
     }
 }
 
+dependencies {
+  implementation 'com.plaid.link:sdk-core:<insert latest version>'
+}
+
 flutter {
     source = "../.."
 }

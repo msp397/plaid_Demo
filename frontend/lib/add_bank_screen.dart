@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -9,7 +8,7 @@ class AddBankScreen extends StatefulWidget {
 }
 
 class _AddBankScreenState extends State<AddBankScreen> {
-  String _linkToken = '';
+  String linkToken = '';
 
   @override
   void initState() {
@@ -26,7 +25,7 @@ class _AddBankScreenState extends State<AddBankScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          _linkToken = data['link_token'];
+          linkToken = data['link_token'];
         });
         print(data);
       } else {
