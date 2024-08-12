@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
+
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -39,9 +39,10 @@ class _AddBankScreenState extends State<AddBankScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WebviewScaffold(
-      url: 'https://cdn.plaid.com/link/v2/stable/link.html?token=$_linkToken',
-      // appBar: AppBar(title: Text('Plaid Link')),
-    );
+    return Scaffold(
+
+        // url: 'https://cdn.plaid.com/link/v2/stable/link.html?token=$_linkToken',
+        // appBar: AppBar(title: Text('Plaid Link')),
+        );
   }
 }
