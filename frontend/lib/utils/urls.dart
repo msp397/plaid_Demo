@@ -1,0 +1,8 @@
+class URLS {
+  // Base URL
+  static String base_url = "http://localhost:3000/";
+
+  // Other URLS
+  static String create_link_token = "api/create-link-token";
+  static String create_public_token = "api/create-public-token";
+}

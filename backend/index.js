@@ -1,4 +1,3 @@
-// app.js
 import express from 'express';
 import bodyParser from 'body-parser';
 import axios from 'axios';
@@ -6,11 +5,15 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerDocs from './swagger.cjs'; 
 import open from 'open';
 import dotenv from 'dotenv';
+import cors from 'cors'; 
 
 dotenv.config();
 
 const app = express();
 const port = 3000;
+
+// Use CORS middleware
+app.use(cors()); 
 
 app.use(bodyParser.json());
 
@@ -18,7 +21,7 @@ app.use(bodyParser.json());
 app.post('/api/create-link-token', async (req, res) => {
     const { client_id, secret, client_name, country_codes, language, user, products } = req.body;
     
-    if (!client_id || !secret || !client_name || !country_codes || !language || !user || !products) {
+    if (!client_name || !country_codes || !language || !user || !products) {
         return res.status(400).json({ error: 'Invalid request payload' });
     }
 
@@ -47,7 +50,7 @@ app.post('/api/create-link-token', async (req, res) => {
 app.post('/api/create-public-token', async (req, res) => {
     const { client_id, secret, institution_id, initial_products } = req.body;
 
-    if (!client_id || !secret || !institution_id || !initial_products) {
+    if (!institution_id || !initial_products) {
         return res.status(400).json({ error: 'Invalid request payload' });
     }
 

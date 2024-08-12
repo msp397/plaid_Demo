@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/urls.dart';
 import 'package:http/http.dart' as http;
 import 'package:plaid_flutter/plaid_flutter.dart';
 
@@ -14,9 +15,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Bank Transfer App',
-      // theme: ThemeData(
-      //   primarySwatch: Colors.blue,
-      // ),
+      debugShowCheckedModeBanner: false,
       home: HomeScreen(),
     );
   }
@@ -33,15 +32,11 @@ class _HomeScreenState extends State<HomeScreen> {
   LinkConfiguration? _configuration;
 
   Future<void> _createLinkToken() async {
-    const String backendUrl = 'http://localhost:3000/api/create-link-token';
-
     try {
       final response = await http.post(
-        Uri.parse(backendUrl),
+        Uri.parse(URLS.base_url + URLS.create_link_token),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "client_id": "66b59ad4f271e2001a12e6ca",
-          "secret": "3cea473d8ef5b0d0657275a727fece",
           "client_name": "ABC123",
           "country_codes": ["US"],
           "language": "en",
