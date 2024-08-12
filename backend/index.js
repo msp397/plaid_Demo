@@ -2,8 +2,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const swaggerUi = require('swagger-ui-express');
-const swaggerDocs = require('./swagger');
+// const swaggerUi = require('swagger-ui-express');
+// const swaggerDocs = require('./swagger');
 // const open = require('open');
 
 const app = express();
@@ -93,7 +93,7 @@ app.post('/api/create-link-token', async (req, res) => {
     }
 });
 
-app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerDocs.specs));
+// app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerDocs.specs));
 
 // Start the server
 app.listen(port, () => {

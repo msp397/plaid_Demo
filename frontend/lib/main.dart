@@ -14,9 +14,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Bank Transfer App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      // theme: ThemeData(
+      //   primarySwatch: Colors.blue,
+      // ),
       home: HomeScreen(),
     );
   }
@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   LinkConfiguration? _configuration;
 
   Future<void> _createLinkToken() async {
-    const String backendUrl = 'https://localhost:3000/create-link-token';
+    const String backendUrl = 'http://localhost:3000/api/create-link-token';
 
     try {
       final response = await http.post(
@@ -42,13 +42,15 @@ class _HomeScreenState extends State<HomeScreen> {
         body: jsonEncode({
           "client_id": "66b59ad4f271e2001a12e6ca",
           "secret": "3cea473d8ef5b0d0657275a727fece",
-          "client_name": "mari",
+          "client_name": "ABC123",
           "country_codes": ["US"],
           "language": "en",
-          "user": {"client_user_id": "abc123"},
+          "user": {"client_user_id": "123"},
           "products": ["auth"]
         }),
       );
+      print(response.body);
+      print(response.statusCode);
 
       if (response.statusCode == 200) {
         final String linkToken = jsonDecode(response.body)['link_token'];
@@ -61,9 +63,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print('Error: $e');
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('Error: ${e.toString()}')),
-      // );
     }
   }
 
@@ -77,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: <Widget>[
             ElevatedButton(
               onPressed: _createLinkToken,
-              child: Text("Create Link Token Configuration"),
+              child: Text("Create Link Token"),
             ),
             SizedBox(height: 16),
             ElevatedButton(
