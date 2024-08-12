@@ -40,13 +40,11 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse(backendUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "client_id": "66b59ad4f271e2001a12e6ca",
-          "secret": "3cea473d8ef5b0d0657275a727fece",
-          "client_name": "ABC123",
-          "country_codes": ["US"],
+          "user": {"client_user_id": "App123"},
+          "client_name": "Plaid App",
+          "products": ["auth"],
+          "country_codes": ["GB"],
           "language": "en",
-          "user": {"client_user_id": "123"},
-          "products": ["auth"]
         }),
       );
       print(response.body);
