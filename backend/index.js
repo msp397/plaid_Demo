@@ -29,13 +29,7 @@ app.post("/api/create-link-token", async (req, res) => {
     products,
   } = req.body;
 
-  if (
-    !client_name ||
-    !country_codes ||
-    !language ||
-    !user ||
-    !products
-  ) {
+  if (!client_name || !country_codes || !language || !user || !products) {
     return res.status(400).json({ error: "Invalid request payload" });
   }
 
@@ -97,23 +91,15 @@ app.post("/api/create-public-token", async (req, res) => {
   }
 });
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs.specs));
-
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-  open(`http://localhost:${port}/api-docs`);
-});
-
 // EXCHANGE PUBLIC TOKEN
 app.post("/api/exchange-public-token", async (req, res) => {
   const { client_id, secret, public_token } = req.body;
-  if (!client_id || !secret || !public_token) {
+  if (!public_token) {
     return res.status(400).json({ error: "Invalid request payload" });
   }
   try {
     const response = await axios.post(
-      "https://sandbox.plaid.com/accounts/balance/get",
+      "https://sandbox.plaid.com/item/public_token/exchange",
       {
         client_id: process.env.PLAID_CLIENT_ID || client_id,
         secret: process.env.PLAID_SECRET || secret,
@@ -131,14 +117,14 @@ app.post("/api/exchange-public-token", async (req, res) => {
 });
 
 // CHECK BALANCE
-app.post("/api/balance", async (req, res) => {
+app.post("/api/check-balance", async (req, res) => {
   const { client_id, secret, access_token } = req.body;
   if (!access_token) {
     return res.statusCode(400).json({ error: "Invalid request payload" });
   } else {
     try {
       const response = await axios.post(
-        "https://sandbox.plaid.com/processor/stripe/balance",
+        "https://sandbox.plaid.com/accounts/balance/get",
         {
           client_id: process.env.PLAID_CLIENT_ID || client_id,
           secret: process.env.PLAID_SECRET || secret,
@@ -154,4 +140,40 @@ app.post("/api/balance", async (req, res) => {
       });
     }
   }
+});
+
+// GET TRANSACTIONS
+app.post("/api/transactions", async (req, res) => {
+  const { client_id, secret, access_token, start_date, end_date } = req.body;
+  if (!access_token) {
+    return res.statusCode(400).json({ error: "Invalid request payload" });
+  } else {
+    try {
+      const response = await axios.post(
+        "https://sandbox.plaid.com/transactions/get",
+        {
+          client_id: process.env.PLAID_CLIENT_ID || client_id,
+          secret: process.env.PLAID_SECRET || secret,
+          access_token,
+          start_date,
+          end_date,
+        }
+      );
+      res.status(response.status).json(response.data);
+    } catch (error) {
+      console.error("Error contacting plaid API:", error.message);
+      res.status(error.response ? error.response.status : 500).json({
+        error: error.message,
+        ...(error.response ? error.response.data : {}),
+      });
+    }
+  }
+});
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs.specs));
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+  open(`http://localhost:${port}/api-docs`);
 });
