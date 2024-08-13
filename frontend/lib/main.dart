@@ -4,8 +4,8 @@ import 'package:frontend/utils/urls.dart';
 import 'package:http/http.dart' as http;
 import 'package:plaid_flutter/plaid_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:html' as html;
-import 'dart:js_util' as js_util;
+// import 'dart:html' as html;
+// import 'dart:js_util' as js_util;
 
 void main() {
   runApp(const MyApp());
@@ -76,9 +76,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openPlaidLinkWeb() {
-    if (_configuration != null) {
-      js_util.callMethod(html.window, 'openPlaidLink', [linkToken]);
-    }
+    // if (_configuration != null) {
+    //   js_util.callMethod(html.window, 'openPlaidLink', [linkToken]);
+    // }
   }
 
   @override
