@@ -30,8 +30,6 @@ app.post("/api/create-link-token", async (req, res) => {
   } = req.body;
 
   if (
-    !client_id ||
-    !secret ||
     !client_name ||
     !country_codes ||
     !language ||

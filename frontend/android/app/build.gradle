@@ -54,7 +54,7 @@ android {
 }
 
 dependencies {
-  implementation 'com.plaid.link:sdk-core:<insert latest version>'
+    implementation 'com.plaid.link:sdk-core:4.6.0'
 }
 
 flutter {
