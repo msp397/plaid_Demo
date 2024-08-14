@@ -170,6 +170,33 @@ app.post("/api/transactions", async (req, res) => {
   }
 });
 
+// CHECK BALANCE
+
+app.post("/api/check-balance", async (req, res) => {
+  const { client_id, secret, access_token } = req.body;
+  if (!access_token) {
+    return res.statusCode(400).json({ error: "Invalid request payload" });
+  } else {
+    try {
+      const response = await axios.post(
+        "https://sandbox.plaid.com/accounts/balance/get",
+        {
+          client_id: process.env.PLAID_CLIENT_ID || client_id,
+          secret: process.env.PLAID_SECRET || secret,
+          access_token,
+        }
+      );
+      res.status(response.status).json(response.data);
+    } catch (error) {
+      console.error("Error contacting plaid API:", error.message);
+      res.status(error.response ? error.response.status : 500).json({
+        error: error.message,
+        ...(error.response ? error.response.data : {}),
+      });
+    }
+  }
+});
+
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs.specs));
 
 // Start the server
