@@ -44,13 +44,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _createLinkToken() async {
+    setState(() {
+      linkToken = "link-sandbox-432fa4f6-4d84-42cd-be4a-170a08f92848";
+      _configuration = LinkTokenConfiguration(token: linkToken);
+    });
     try {
       final response = await http.post(
-        Uri.parse(URLS.base_url + URLS.create_link_token),
+        Uri.parse("http://192.168.2.32:3000/" + URLS.create_link_token),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "user": {"client_user_id": "App123"},
-          "client_name": "Plaid App",
+          "client_name": "Torus Pay",
           "products": ["auth"],
           "country_codes": ["US"],
           "language": "en",
@@ -59,11 +63,11 @@ class _HomeScreenState extends State<HomeScreen> {
       print(response.body);
       print(response.statusCode);
       if (response.statusCode == 200) {
-        linkToken = jsonDecode(response.body)['link_token'];
-        print(linkToken);
+        // linkToken = jsonDecode(response.body)['link_token'];
         setState(() {
           _configuration = LinkTokenConfiguration(token: linkToken);
         });
+        print(linkToken);
       } else {
         throw Exception('Failed to create link token');
       }
@@ -87,12 +91,24 @@ class _HomeScreenState extends State<HomeScreen> {
   void _setupPlaidLinkStreams() {
     PlaidLink.onSuccess.listen((success) {
       print('Account Added SuccessFully');
-      print(success.publicToken);
-      print(success.metadata.accounts);
-      print(success.metadata.institution);
+      var accounts = success.metadata.accounts.map((account) {
+        return {
+          'id': account.id,
+          'name': account.name,
+        };
+      }).toList();
+
+      var institution = {
+        'id': success.metadata.institution?.id ?? 'N/A',
+        'name': success.metadata.institution?.name ?? 'N/A',
+      };
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => AccountInfo()),
+        MaterialPageRoute(
+            builder: (context) => AccountInfo(
+                  accounts: accounts,
+                  institution: institution,
+                )),
       );
     });
 
