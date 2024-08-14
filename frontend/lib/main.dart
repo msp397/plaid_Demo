@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     try {
       final response = await http.post(
-        Uri.parse("http://192.168.2.32:3000/" + URLS.create_link_token),
+        Uri.parse("http://localhost:3000/" + URLS.create_link_token),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "user": {"client_user_id": "App123"},

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/balencecheck.dart';
 
 class AccountInfo extends StatelessWidget {
   final List<Map<String, String>> accounts;
@@ -35,7 +36,17 @@ class AccountInfo extends StatelessWidget {
                 final account = accounts[index];
                 return ListTile(
                   title: Text(account['name'] ?? 'N/A'),
-                  subtitle: Text('ID: ${account['id'] ?? 'N/A'}'),
+                  // subtitle: Text('ID: ${account['id'] ?? 'N/A'}'),
+                  onTap: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BalanceCheck(
+                          accountId: account['id'],
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),

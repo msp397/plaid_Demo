@@ -1,42 +1,41 @@
 <!DOCTYPE html>
 <html>
-<head>
- 
-  <base href="$FLUTTER_BASE_HREF">
+  <head>
+    <base href="$FLUTTER_BASE_HREF" />
 
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+    <meta charset="UTF-8" />
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+    <meta name="description" content="A new Flutter project." />
 
-  <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="frontend">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+    <!-- iOS meta tags & icons -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="frontend" />
+    <link rel="apple-touch-icon" href="icons/Icon-192.png" />
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
 
-  <title>frontend</title>
-  <link rel="manifest" href="manifest.json">
-</head>
-<body>
-  <script src="flutter_bootstrap.js" async></script>
-  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
-  <script>
-    function openPlaidLink(linkToken) {
-      var handler = Plaid.create({
-        token: linkToken,
-        onSuccess: function(public_token, metadata) {
-          console.log('Public token:', public_token);
-          console.log('Metadata:', metadata);
-        },
-        onExit: function(err, metadata) {
-          console.log('Exit:', metadata);
-        },
-      });
-      handler.open();
-    }
-  </script>
-</body>
+    <title>frontend</title>
+    <link rel="manifest" href="manifest.json" />
+  </head>
+  <body>
+    <script src="flutter_bootstrap.js" async></script>
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+    <script>
+      function openPlaidLink(linkToken) {
+        var handler = Plaid.create({
+          token: linkToken,
+          onSuccess: function (public_token, metadata) {
+            console.log("Public token:", public_token);
+            console.log("Metadata:", metadata);
+          },
+          onExit: function (err, metadata) {
+            console.log("Exit:", metadata);
+          },
+        });
+        handler.open();
+      }
+    </script>
+  </body>
 </html>
