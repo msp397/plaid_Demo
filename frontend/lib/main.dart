@@ -4,9 +4,6 @@ import 'package:frontend/account_info.dart';
 import 'package:frontend/utils/urls.dart';
 import 'package:http/http.dart' as http;
 import 'package:plaid_flutter/plaid_flutter.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-// import 'dart:html' as html;
-// import 'dart:js_util' as js_util;
 
 void main() {
   runApp(const MyApp());
@@ -45,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _createLinkToken() async {
     setState(() {
-      linkToken = "link-sandbox-432fa4f6-4d84-42cd-be4a-170a08f92848";
+      linkToken = "link-sandbox-7ec7a20f-772f-4d69-8cf1-a7114fecd3dc";
       _configuration = LinkTokenConfiguration(token: linkToken);
     });
     try {
@@ -77,14 +74,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleAddBank() {
-    if (kIsWeb) {
-      _openPlaidLinkWeb();
-    } else {
-      if (_configuration != null) {
-        PlaidLink.open(
-          configuration: _configuration!,
-        );
-      }
+    if (_configuration != null) {
+      PlaidLink.open(
+        configuration: _configuration!,
+      );
     }
   }
 
@@ -102,6 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'id': success.metadata.institution?.id ?? 'N/A',
         'name': success.metadata.institution?.name ?? 'N/A',
       };
+      print(success.metadata.institution?.id);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -119,12 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
         print('Plaid Link exited without error');
       }
     });
-  }
-
-  void _openPlaidLinkWeb() {
-    // if (_configuration != null) {
-    //   js_util.callMethod(html.window, 'openPlaidLink', [linkToken]);
-    // }
   }
 
   @override
@@ -150,11 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: WidgetStatePropertyAll(Colors.blue),
                 foregroundColor: WidgetStatePropertyAll(Colors.white),
               ),
-              onPressed: _configuration != null
-                  ? kIsWeb
-                      ? _openPlaidLinkWeb
-                      : _handleAddBank
-                  : null,
+              onPressed: _configuration != null ? _handleAddBank : null,
               child: Text('Add Bank Account'),
             ),
           ],
