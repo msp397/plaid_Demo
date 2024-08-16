@@ -1,12 +1,31 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
-class TransferScreen extends StatelessWidget {
+class TransferScreen extends StatefulWidget {
+  const TransferScreen({super.key});
+
+  @override
+  State<TransferScreen> createState() => _TransferScreenState();
+}
+
+class _TransferScreenState extends State<TransferScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Bank-to-Bank Transfer')),
+      appBar: AppBar(
+        title: const Text('Trasnfer'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
       body: Center(
-        child: Text('Transfer Screen Content'),
+        child: Column(
+          children: [
+            GestureDetector(
+              child: Text('Trasnfer'),
+            ),
+          ],
+        ),
       ),
     );
   }

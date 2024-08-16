@@ -33,6 +33,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   LinkConfiguration? _configuration;
   String linkToken = '';
+  String publicToken = '';
+  String accessToken = '';
+  List<Map<String, String>> accounts = [];
+  Map<String, String> institution = {};
 
   @override
   void initState() {
@@ -56,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
           "client_id": "66b59ad4f271e2001a12e6ca",
           "secret": "3cea473d8ef5b0d0657275a727fece",
           "client_name": "Torus Pay",
-          "products": ["auth", "transfer"],
+          "products": ["auth"],
           "country_codes": ["US"],
           "language": "en",
           "webhook": "https://www.genericwebhookurl.com/webhook",
@@ -69,65 +73,85 @@ class _HomeScreenState extends State<HomeScreen> {
           _configuration = LinkTokenConfiguration(token: linkToken);
         });
       } else {
-        throw Exception('Failed to create link token');
+        print('Failed to create link token');
       }
     } catch (e) {
       print('Error: $e');
     }
   }
 
-  void _createTransferIntent() async {
+  Future<void> _exchangePublicToken() async {
     try {
       final response = await http.post(
-        Uri.parse('https://sandbox.plaid.com/transfer/intents/create'),
+        Uri.parse('https://sandbox.plaid.com/item/public_token/exchange'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "client_id": "66b59ad4f271e2001a12e6ca",
           "secret": "3cea473d8ef5b0d0657275a727fece",
-          "account_id": "3gE5gnRzNyfXpBK5wEEKcymJ5albGVUqg77gr",
-          "mode": "PAYMENT",
-          "amount": "12.34",
-          "description": "Desc",
-          "ach_class": "ppd",
-          "origination_account_id": "9853defc-e703-463d-86b1-dc0607a45359",
-          "user": {"legal_name": "Anne Charleston"}
+          "public_token": publicToken,
         }),
       );
 
+      print(response.body);
+
       if (response.statusCode == 200) {
-        final transferIntent = jsonDecode(response.body);
-        print('Transfer Intent Created: $transferIntent');
+        final data = jsonDecode(response.body);
+        setState(() {
+          accessToken = data['access_token'];
+        });
+        // await _authGet();
+        _routeAccountInfo();
       } else {
-        throw Exception('Failed to create transfer intent');
+        throw Exception('Failed to exchange public token');
       }
     } catch (e) {
-      print('Error: $e');
+      print('Error Exchange token');
+    }
+  }
+
+  Future<void> _authGet() async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://sandbox.plaid.com/auth/get'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
+          "access_token": accessToken,
+        }),
+      );
+
+      print(response.body);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to exchange public token');
+      }
+    } catch (e) {
+      print('Error Exchange token');
     }
   }
 
   void _setupPlaidLinkStreams() {
     PlaidLink.onSuccess.listen((success) {
-      print('Account Added Successfully');
-      var accounts = success.metadata.accounts.map((account) {
-        return {
-          'id': account.id,
-          'name': account.name,
-        };
-      }).toList();
+      setState(() {
+        print(success.publicToken.toString());
+        publicToken = success.publicToken.toString();
+        accounts = success.metadata.accounts.map((account) {
+          return {
+            'id': account.id,
+            'name': account.name,
+          };
+        }).toList();
 
-      var institution = {
-        'id': success.metadata.institution?.id ?? 'N/A',
-        'name': success.metadata.institution?.name ?? 'N/A',
-      };
-      // Navigator.pushReplacement(
-      //   // ignore: use_build_context_synchronously
-      //   context,
-      //   MaterialPageRoute(
-      //       builder: (context) => AccountInfo(
-      //             accounts: accounts,
-      //             institution: institution,
-      //           )),
-      // );
+        institution = {
+          'id': success.metadata.institution?.id ?? 'N/A',
+          'name': success.metadata.institution?.name ?? 'N/A',
+        };
+      });
+      print('Account Added Successfully');
+      _exchangePublicToken();
     });
 
     PlaidLink.onExit.listen((exit) {
@@ -139,73 +163,21 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _setupPlaidLinkWeb() {
-    //   // Check if Plaid script is already included
-    //   if (html.document.querySelector(
-    //           'script[src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"]') ==
-    //       null) {
-    //     // Create Plaid Link script element
-    //     final script = html.ScriptElement()
-    //       ..src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js'
-    //       ..type = 'text/javascript';
-
-    //     // Append Plaid Link script to the document
-    //     html.document.body?.append(script);
-    //   }
-
-    //   // Check if Plaid button already exists
-    //   if (html.document.getElementById('link-button') == null) {
-    //     final button = html.ButtonElement()
-    //       ..id = 'link-button'
-    //       ..text = 'Add Bank Account';
-
-    //     html.document.body?.append(button);
-    //   }
-
-    //   // Create Plaid initialization script
-    //   final plaidScript = html.ScriptElement()
-    //     ..text = '''
-    //   var handler = Plaid.create({
-    //     clientName: 'Torus Pay',
-    //     env: 'sandbox',
-    //     token: '$linkToken',
-    //     product: ['auth', 'transfer'],
-    //     onSuccess: function(public_token, metadata) {
-    //       window.postMessage({ public_token: public_token, metadata: metadata }, '*');
-    //     },
-    //     onExit: function(err, metadata) {
-    //       if (err != null) {
-    //         window.postMessage({ error: err.message }, '*');
-    //       }
-    //     }
-    //   });
-
-    //   document.getElementById('link-button').addEventListener('click', function() {
-    //     handler.open();
-    //   });
-    // ''';
-
-    //   // Append Plaid initialization script
-    //   html.document.body?.append(plaidScript);
-
-    //   // Listen for messages from the Plaid Link JavaScript SDK
-    //   html.window.onMessage.listen((event) {
-    //     final message = event.data;
-    //     if (message is Map) {
-    //       if (message.containsKey('public_token')) {
-    //         // Handle success here
-    //         print('Public Token: ${message['public_token']}');
-    //         // You may want to send this token to your server and process it further
-    //       } else if (message.containsKey('error')) {
-    //         print('Plaid Link Error: ${message['error']}');
-    //       }
-    //     }
-    //   });
+  void _routeAccountInfo() {
+    Navigator.pushReplacement(
+      // ignore: use_build_context_synchronously
+      context,
+      MaterialPageRoute(
+          builder: (context) => AccountInfo(
+                accounts: accounts,
+                institution: institution,
+              )),
+    );
   }
 
   void _handleAddBank() {
     if (kIsWeb) {
-      _setupPlaidLinkWeb();
+      // _setupPlaidLinkWeb();
     } else if (_configuration != null) {
       PlaidLink.open(configuration: _configuration!);
     }

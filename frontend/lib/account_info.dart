@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/balencecheck.dart';
 import 'package:frontend/transfer.dart';
+import 'package:frontend/transfer_screen.dart';
 
 class AccountInfo extends StatefulWidget {
   final List<Map<String, String>> accounts;
@@ -17,19 +18,21 @@ class AccountInfo extends StatefulWidget {
 }
 
 class _AccountInfoState extends State<AccountInfo> {
-  String? _selectedAccountId = '1';
+  String? _selectedAccountId = '';
 
   void _onTransferFunds() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const Transfer(),
-      ),
-    );
+    if (_selectedAccountId!.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const Transfer(),
+        ),
+      );
+    }
   }
 
   void _onCheckBalance() {
-    if (_selectedAccountId != null) {
+    if (_selectedAccountId!.isNotEmpty) {
       Navigator.push(
         context,
         MaterialPageRoute(
