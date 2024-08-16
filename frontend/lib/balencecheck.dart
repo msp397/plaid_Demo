@@ -14,7 +14,6 @@ class BalanceCheck extends StatefulWidget {
 class _BalanceCheckState extends State<BalanceCheck> {
   bool _isLoading = false;
   String? _balance;
-  String _error = '';
 
   @override
   void initState() {
@@ -32,31 +31,25 @@ class _BalanceCheckState extends State<BalanceCheck> {
         Uri.parse('https://sandbox.plaid.com/link/token/create'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
+          "user": {"client_user_id": "App123"},
           "client_id": "66b59ad4f271e2001a12e6ca",
           "secret": "3cea473d8ef5b0d0657275a727fece",
           "client_name": "Torus Pay",
-          "institution_id": "ins_3",
-          "initial_products": ["auth"],
-          "options": {"webhook": "https://www.genericwebhookurl.com/webhook"},
+          "products": ["auth"],
+          "country_codes": ["US"],
+          "language": "en",
           "webhook": "https://www.genericwebhookurl.com/webhook",
           "android_package_name": "com.example.frontend",
         }),
       );
-
+      print(response.body);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final linkToken = data['link_token'];
-        await _exchangeLinkToken(linkToken);
-      } else {
-        setState(() {
-          _error =
-              'Failed to create link token. Status code: ${response.statusCode}';
-        });
-      }
+        await _getpulicToken();
+      } else {}
     } catch (e) {
-      setState(() {
-        _error = 'Error: $e';
-      });
+      throw Exception('Failed to create link token');
     } finally {
       if (mounted) {
         setState(() {
@@ -66,7 +59,41 @@ class _BalanceCheckState extends State<BalanceCheck> {
     }
   }
 
-  Future<void> _exchangeLinkToken(String public_token) async {
+  Future<void> _getpulicToken() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://sandbox.plaid.com/sandbox/public_token/create'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
+          "institution_id": "ins_20",
+          "initial_products": ["auth"],
+          "options": {"webhook": "https://www.genericwebhookurl.com/webhook"}
+        }),
+      );
+      print(response.body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final publicToken = data['public_token'];
+        _exchangePublicToken(publicToken);
+      }
+    } catch (e) {
+      throw Exception('Failed to create link token');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _exchangePublicToken(String publicToken) async {
     setState(() {
       _isLoading = true;
     });
@@ -78,24 +105,21 @@ class _BalanceCheckState extends State<BalanceCheck> {
         body: jsonEncode({
           "client_id": "66b59ad4f271e2001a12e6ca",
           "secret": "3cea473d8ef5b0d0657275a727fece",
-          "public_token": public_token,
+          "public_token": publicToken,
         }),
       );
+
+      print(response.body);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final accessToken = data['access_token'];
         await _getBalance(accessToken);
       } else {
-        setState(() {
-          _error =
-              'Failed to exchange link token. Status code: ${response.statusCode}';
-        });
+        throw Exception('Failed to exchange public token');
       }
     } catch (e) {
-      setState(() {
-        _error = 'Error: $e';
-      });
+      throw Exception('Error Exchange token');
     } finally {
       if (mounted) {
         setState(() {
@@ -112,7 +136,7 @@ class _BalanceCheckState extends State<BalanceCheck> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://sandbox.plaid.com/accounts/balance/get'),
+        Uri.parse('https://sandbox.plaid.com/accounts/get'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "client_id": "66b59ad4f271e2001a12e6ca",
@@ -120,22 +144,34 @@ class _BalanceCheckState extends State<BalanceCheck> {
           "access_token": accessToken
         }),
       );
-
+      print(response.body);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final balance = data['accounts'][0]['balances']['available'];
+        final accounts = data['accounts'] as List<dynamic>? ?? [];
+
+        String? accountBalance;
+
+        for (var account in accounts) {
+          if (account is Map<String, dynamic> &&
+              account['account_id'] == widget.accountId) {
+            final balances = account['balances'] as Map<String, dynamic>?;
+            if (balances != null) {
+              final availableBalance = balances['available'];
+              accountBalance = availableBalance?.toString() ?? 'N/A';
+            }
+            break;
+          }
+        }
+
         setState(() {
-          _balance = balance.toString();
+          _balance =
+              accountBalance ?? 'Account not found or balance unavailable';
         });
       } else {
-        setState(() {
-          _error = 'Failed to get balance. Status code: ${response.statusCode}';
-        });
+        throw Exception('Failed to get balance');
       }
     } catch (e) {
-      setState(() {
-        _error = 'Error: $e';
-      });
+      throw Exception('Error getting balance');
     } finally {
       if (mounted) {
         setState(() {
@@ -169,14 +205,6 @@ class _BalanceCheckState extends State<BalanceCheck> {
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  if (_error.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        _error,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
                 ],
               ),
       ),
