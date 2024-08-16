@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'dart:html' as html; // Import dart:html for web-specific code
+// import 'dart:html' as html;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:frontend/account_info.dart';
-import 'package:frontend/utils/urls.dart';
 import 'package:http/http.dart' as http;
 import 'package:plaid_flutter/plaid_flutter.dart';
 
@@ -39,7 +38,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     if (kIsWeb) {
-      print('Web');
       _createLinkToken();
       // _setupPlaidLinkWeb();
     } else {
@@ -51,24 +49,56 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _createLinkToken() async {
     try {
       final response = await http.post(
-        Uri.parse("http://localhost:3000/${URLS.create_link_token}"),
+        Uri.parse("https://sandbox.plaid.com/link/token/create"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "user": {"client_user_id": "App123"},
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
           "client_name": "Torus Pay",
           "products": ["auth", "transfer"],
           "country_codes": ["US"],
           "language": "en",
+          "webhook": "https://www.genericwebhookurl.com/webhook",
+          "android_package_name": "com.example.frontend",
         }),
       );
       if (response.statusCode == 200) {
         setState(() {
           linkToken = jsonDecode(response.body)['link_token'];
           _configuration = LinkTokenConfiguration(token: linkToken);
-          print(linkToken);
         });
       } else {
         throw Exception('Failed to create link token');
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
+  void _createTransferIntent() async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://sandbox.plaid.com/transfer/intents/create'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
+          "account_id": "3gE5gnRzNyfXpBK5wEEKcymJ5albGVUqg77gr",
+          "mode": "PAYMENT",
+          "amount": "12.34",
+          "description": "Desc",
+          "ach_class": "ppd",
+          "origination_account_id": "9853defc-e703-463d-86b1-dc0607a45359",
+          "user": {"legal_name": "Anne Charleston"}
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final transferIntent = jsonDecode(response.body);
+        print('Transfer Intent Created: $transferIntent');
+      } else {
+        throw Exception('Failed to create transfer intent');
       }
     } catch (e) {
       print('Error: $e');
@@ -89,16 +119,15 @@ class _HomeScreenState extends State<HomeScreen> {
         'id': success.metadata.institution?.id ?? 'N/A',
         'name': success.metadata.institution?.name ?? 'N/A',
       };
-
-      Navigator.pushReplacement(
-        // ignore: use_build_context_synchronously
-        context,
-        MaterialPageRoute(
-            builder: (context) => AccountInfo(
-                  accounts: accounts,
-                  institution: institution,
-                )),
-      );
+      // Navigator.pushReplacement(
+      //   // ignore: use_build_context_synchronously
+      //   context,
+      //   MaterialPageRoute(
+      //       builder: (context) => AccountInfo(
+      //             accounts: accounts,
+      //             institution: institution,
+      //           )),
+      // );
     });
 
     PlaidLink.onExit.listen((exit) {
@@ -111,67 +140,67 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _setupPlaidLinkWeb() {
-    // Check if Plaid script is already included
-    if (html.document.querySelector(
-            'script[src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"]') ==
-        null) {
-      // Create Plaid Link script element
-      final script = html.ScriptElement()
-        ..src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js'
-        ..type = 'text/javascript';
+    //   // Check if Plaid script is already included
+    //   if (html.document.querySelector(
+    //           'script[src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"]') ==
+    //       null) {
+    //     // Create Plaid Link script element
+    //     final script = html.ScriptElement()
+    //       ..src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js'
+    //       ..type = 'text/javascript';
 
-      // Append Plaid Link script to the document
-      html.document.body?.append(script);
-    }
+    //     // Append Plaid Link script to the document
+    //     html.document.body?.append(script);
+    //   }
 
-    // Check if Plaid button already exists
-    if (html.document.getElementById('link-button') == null) {
-      final button = html.ButtonElement()
-        ..id = 'link-button'
-        ..text = 'Add Bank Account';
+    //   // Check if Plaid button already exists
+    //   if (html.document.getElementById('link-button') == null) {
+    //     final button = html.ButtonElement()
+    //       ..id = 'link-button'
+    //       ..text = 'Add Bank Account';
 
-      html.document.body?.append(button);
-    }
+    //     html.document.body?.append(button);
+    //   }
 
-    // Create Plaid initialization script
-    final plaidScript = html.ScriptElement()
-      ..text = '''
-    var handler = Plaid.create({
-      clientName: 'Torus Pay',
-      env: 'sandbox', 
-      token: '$linkToken',
-      product: ['auth', 'transfer'],
-      onSuccess: function(public_token, metadata) {
-        window.postMessage({ public_token: public_token, metadata: metadata }, '*');
-      },
-      onExit: function(err, metadata) {
-        if (err != null) {
-          window.postMessage({ error: err.message }, '*');
-        }
-      }
-    });
+    //   // Create Plaid initialization script
+    //   final plaidScript = html.ScriptElement()
+    //     ..text = '''
+    //   var handler = Plaid.create({
+    //     clientName: 'Torus Pay',
+    //     env: 'sandbox',
+    //     token: '$linkToken',
+    //     product: ['auth', 'transfer'],
+    //     onSuccess: function(public_token, metadata) {
+    //       window.postMessage({ public_token: public_token, metadata: metadata }, '*');
+    //     },
+    //     onExit: function(err, metadata) {
+    //       if (err != null) {
+    //         window.postMessage({ error: err.message }, '*');
+    //       }
+    //     }
+    //   });
 
-    document.getElementById('link-button').addEventListener('click', function() {
-      handler.open();
-    });
-  ''';
+    //   document.getElementById('link-button').addEventListener('click', function() {
+    //     handler.open();
+    //   });
+    // ''';
 
-    // Append Plaid initialization script
-    html.document.body?.append(plaidScript);
+    //   // Append Plaid initialization script
+    //   html.document.body?.append(plaidScript);
 
-    // Listen for messages from the Plaid Link JavaScript SDK
-    html.window.onMessage.listen((event) {
-      final message = event.data;
-      if (message is Map) {
-        if (message.containsKey('public_token')) {
-          // Handle success here
-          print('Public Token: ${message['public_token']}');
-          // You may want to send this token to your server and process it further
-        } else if (message.containsKey('error')) {
-          print('Plaid Link Error: ${message['error']}');
-        }
-      }
-    });
+    //   // Listen for messages from the Plaid Link JavaScript SDK
+    //   html.window.onMessage.listen((event) {
+    //     final message = event.data;
+    //     if (message is Map) {
+    //       if (message.containsKey('public_token')) {
+    //         // Handle success here
+    //         print('Public Token: ${message['public_token']}');
+    //         // You may want to send this token to your server and process it further
+    //       } else if (message.containsKey('error')) {
+    //         print('Plaid Link Error: ${message['error']}');
+    //       }
+    //     }
+    //   });
   }
 
   void _handleAddBank() {

@@ -7,13 +7,13 @@ class AccountInfo extends StatefulWidget {
   final Map<String, String> institution;
 
   const AccountInfo({
-    Key? key,
+    super.key,
     required this.accounts,
     required this.institution,
-  }) : super(key: key);
+  });
 
   @override
-  _AccountInfoState createState() => _AccountInfoState();
+  State<AccountInfo> createState() => _AccountInfoState();
 }
 
 class _AccountInfoState extends State<AccountInfo> {
@@ -23,7 +23,7 @@ class _AccountInfoState extends State<AccountInfo> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Transfer(),
+        builder: (context) => const Transfer(),
       ),
     );
   }
@@ -43,7 +43,7 @@ class _AccountInfoState extends State<AccountInfo> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bank Accounts'),
+        title: const Text('Bank Accounts'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
@@ -53,8 +53,8 @@ class _AccountInfoState extends State<AccountInfo> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              '${widget.institution['name'] ?? 'N/A'}',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              widget.institution['name'] ?? 'N/A',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           Expanded(
@@ -84,11 +84,11 @@ class _AccountInfoState extends State<AccountInfo> {
               children: [
                 ElevatedButton(
                   onPressed: _onTransferFunds,
-                  child: Text('Transfer Funds'),
+                  child: const Text('Transfer Funds'),
                 ),
                 ElevatedButton(
                   onPressed: _onCheckBalance,
-                  child: Text('Check Balance'),
+                  child: const Text('Check Balance'),
                 ),
               ],
             ),
