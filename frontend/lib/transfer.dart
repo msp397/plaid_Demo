@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Transfer extends StatefulWidget {
   const Transfer({super.key});
@@ -11,8 +12,10 @@ class Transfer extends StatefulWidget {
 }
 
 class _TransferState extends State<Transfer> {
+  late SharedPreferences prefs;
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _accountIdController = TextEditingController();
+  final TextEditingController _accountNumberController =
+      TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String publicToken = '';
   String accessToken = '';
@@ -23,6 +26,11 @@ class _TransferState extends State<Transfer> {
   void initState() {
     super.initState();
     _getpulicToken();
+    initSharedPrefs();
+  }
+
+  void initSharedPrefs() async {
+    prefs = await SharedPreferences.getInstance();
   }
 
   Future<void> _getpulicToken() async {
@@ -68,11 +76,35 @@ class _TransferState extends State<Transfer> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         accessToken = data['access_token'];
+        // prefs.setString('access-token', accessToken);
+        _authGet();
       } else {
         throw Exception('Failed to exchange public token');
       }
     } catch (e) {
       throw Exception('Error Exchange token');
+    }
+  }
+
+  Future<void> _authGet() async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://sandbox.plaid.com/auth/get'),
+        headers: {'Content-type': 'application/json'},
+        body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
+          "access_token": accessToken,
+        }),
+      );
+      print(response.body);
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+      } else {
+        print('Error Getting auth data ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception();
     }
   }
 
@@ -89,10 +121,10 @@ class _TransferState extends State<Transfer> {
           "client_id": "66b59ad4f271e2001a12e6ca",
           "secret": "3cea473d8ef5b0d0657275a727fece",
           "access_token": accessToken,
-          "account_id": _accountIdController.text,
+          "account_id": _accountNumberController.text,
           "type": "debit",
           "network": "ach",
-          "amount": "0,10",
+          "amount": "0.10",
           "ach_class": "ppd",
           "user": {
             "legal_name": "test",
@@ -132,8 +164,8 @@ class _TransferState extends State<Transfer> {
           "secret": "3cea473d8ef5b0d0657275a727fece",
           "idempotency_key": "test123",
           "access_token": accessToken,
-          "account_id": _accountIdController.text,
-          "amount": "0,10",
+          "account_id": _accountNumberController.text,
+          "amount": "0.10",
           "description": "test",
           "metadata": {},
           "authorization_id": "a024679b-9f93-553b-5e3a-77455ddb0ab9"
@@ -167,38 +199,17 @@ class _TransferState extends State<Transfer> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextFormField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: "Enter Amount",
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter an amount';
-                    }
-                    final amount = double.tryParse(value);
-                    if (amount == null || amount <= 0) {
-                      return 'Please enter a valid amount';
-                    }
-                    return null;
-                  },
-                ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _accountIdController,
+                  controller: _accountNumberController,
                   keyboardType: TextInputType.text,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    hintText: "Enter Account ID",
+                    hintText: "Enter Account Number",
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter an account ID';
+                      return 'Please enter an account number';
                     }
                     return null;
                   },

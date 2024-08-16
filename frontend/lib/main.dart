@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/account_info.dart';
 import 'package:http/http.dart' as http;
 import 'package:plaid_flutter/plaid_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,6 +33,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   LinkConfiguration? _configuration;
+  late SharedPreferences prefs;
   String linkToken = '';
   String publicToken = '';
   String accessToken = '';
@@ -45,9 +47,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _createLinkToken();
       // _setupPlaidLinkWeb();
     } else {
+      initSharedPrefs();
       _createLinkToken();
       _setupPlaidLinkStreams();
     }
+  }
+
+  void initSharedPrefs() async {
+    prefs = await SharedPreferences.getInstance();
   }
 
   Future<void> _createLinkToken() async {
@@ -97,34 +104,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
+          prefs.setString('access-token', data['access_token']);
           accessToken = data['access_token'];
         });
         // await _authGet();
         _routeAccountInfo();
-      } else {
-        throw Exception('Failed to exchange public token');
-      }
-    } catch (e) {
-      print('Error Exchange token');
-    }
-  }
-
-  Future<void> _authGet() async {
-    try {
-      final response = await http.post(
-        Uri.parse('https://sandbox.plaid.com/auth/get'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "client_id": "66b59ad4f271e2001a12e6ca",
-          "secret": "3cea473d8ef5b0d0657275a727fece",
-          "access_token": accessToken,
-        }),
-      );
-
-      print(response.body);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
       } else {
         throw Exception('Failed to exchange public token');
       }
