@@ -109,8 +109,6 @@ class _BalanceCheckState extends State<BalanceCheck> {
         }),
       );
 
-      print(response.body);
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final accessToken = data['access_token'];
@@ -144,7 +142,9 @@ class _BalanceCheckState extends State<BalanceCheck> {
           "access_token": accessToken
         }),
       );
+      print(response.statusCode);
       print(response.body);
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final accounts = data['accounts'] as List<dynamic>? ?? [];
@@ -168,10 +168,16 @@ class _BalanceCheckState extends State<BalanceCheck> {
               accountBalance ?? 'Account not found or balance unavailable';
         });
       } else {
-        throw Exception('Failed to get balance');
+        // Handle non-200 status codes
+        throw Exception(
+            'Failed to get balance. Status code: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error getting balance');
+      // Log the error and show a friendly message
+      print('Error getting balance: $e');
+      setState(() {
+        _balance = 'Error getting balance. Please try again.';
+      });
     } finally {
       if (mounted) {
         setState(() {
