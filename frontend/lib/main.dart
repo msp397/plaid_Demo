@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:frontend/account_info.dart';
+import 'package:frontend/transferui.dart';
 import 'package:http/http.dart' as http;
 import 'package:plaid_flutter/plaid_flutter.dart';
 
@@ -18,7 +19,8 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(
       title: 'TPay',
       debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
+      // home: HomeScreen(),
+      home: TransferUI(),
     );
   }
 }
