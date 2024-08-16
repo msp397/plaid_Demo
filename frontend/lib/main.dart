@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:html' as html; // Import dart:html for web-specific code
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:frontend/account_info.dart';
 import 'package:frontend/utils/urls.dart';
@@ -14,7 +16,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'TPay',
       debugShowCheckedModeBanner: false,
       home: HomeScreen(),
@@ -36,35 +38,35 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _createLinkToken();
-    _setupPlaidLinkStreams();
+    if (kIsWeb) {
+      print('Web');
+      _createLinkToken();
+      // _setupPlaidLinkWeb();
+    } else {
+      _createLinkToken();
+      _setupPlaidLinkStreams();
+    }
   }
 
   Future<void> _createLinkToken() async {
-    setState(() {
-      linkToken = "link-sandbox-7ec7a20f-772f-4d69-8cf1-a7114fecd3dc";
-      _configuration = LinkTokenConfiguration(token: linkToken);
-    });
     try {
       final response = await http.post(
-        Uri.parse("http://localhost:3000/" + URLS.create_link_token),
+        Uri.parse("http://localhost:3000/${URLS.create_link_token}"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "user": {"client_user_id": "App123"},
           "client_name": "Torus Pay",
-          "products": ["auth"],
+          "products": ["auth", "transfer"],
           "country_codes": ["US"],
           "language": "en",
         }),
       );
-      print(response.body);
-      print(response.statusCode);
       if (response.statusCode == 200) {
-        // linkToken = jsonDecode(response.body)['link_token'];
         setState(() {
+          linkToken = jsonDecode(response.body)['link_token'];
           _configuration = LinkTokenConfiguration(token: linkToken);
+          print(linkToken);
         });
-        print(linkToken);
       } else {
         throw Exception('Failed to create link token');
       }
@@ -73,17 +75,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _handleAddBank() {
-    if (_configuration != null) {
-      PlaidLink.open(
-        configuration: _configuration!,
-      );
-    }
-  }
-
   void _setupPlaidLinkStreams() {
     PlaidLink.onSuccess.listen((success) {
-      print('Account Added SuccessFully');
+      print('Account Added Successfully');
       var accounts = success.metadata.accounts.map((account) {
         return {
           'id': account.id,
@@ -95,8 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'id': success.metadata.institution?.id ?? 'N/A',
         'name': success.metadata.institution?.name ?? 'N/A',
       };
-      print(success.metadata.institution?.id);
+
       Navigator.pushReplacement(
+        // ignore: use_build_context_synchronously
         context,
         MaterialPageRoute(
             builder: (context) => AccountInfo(
@@ -115,11 +110,83 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _setupPlaidLinkWeb() {
+    // Check if Plaid script is already included
+    if (html.document.querySelector(
+            'script[src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"]') ==
+        null) {
+      // Create Plaid Link script element
+      final script = html.ScriptElement()
+        ..src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js'
+        ..type = 'text/javascript';
+
+      // Append Plaid Link script to the document
+      html.document.body?.append(script);
+    }
+
+    // Check if Plaid button already exists
+    if (html.document.getElementById('link-button') == null) {
+      final button = html.ButtonElement()
+        ..id = 'link-button'
+        ..text = 'Add Bank Account';
+
+      html.document.body?.append(button);
+    }
+
+    // Create Plaid initialization script
+    final plaidScript = html.ScriptElement()
+      ..text = '''
+    var handler = Plaid.create({
+      clientName: 'Torus Pay',
+      env: 'sandbox', 
+      token: '$linkToken',
+      product: ['auth', 'transfer'],
+      onSuccess: function(public_token, metadata) {
+        window.postMessage({ public_token: public_token, metadata: metadata }, '*');
+      },
+      onExit: function(err, metadata) {
+        if (err != null) {
+          window.postMessage({ error: err.message }, '*');
+        }
+      }
+    });
+
+    document.getElementById('link-button').addEventListener('click', function() {
+      handler.open();
+    });
+  ''';
+
+    // Append Plaid initialization script
+    html.document.body?.append(plaidScript);
+
+    // Listen for messages from the Plaid Link JavaScript SDK
+    html.window.onMessage.listen((event) {
+      final message = event.data;
+      if (message is Map) {
+        if (message.containsKey('public_token')) {
+          // Handle success here
+          print('Public Token: ${message['public_token']}');
+          // You may want to send this token to your server and process it further
+        } else if (message.containsKey('error')) {
+          print('Plaid Link Error: ${message['error']}');
+        }
+      }
+    });
+  }
+
+  void _handleAddBank() {
+    if (kIsWeb) {
+      _setupPlaidLinkWeb();
+    } else if (_configuration != null) {
+      PlaidLink.open(configuration: _configuration!);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bank transfer via TPay'),
+        title: const Text('Bank transfer via TPay'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
@@ -127,19 +194,19 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(
+            const Icon(
               Icons.account_balance,
               size: 70,
               color: Colors.blue,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             ElevatedButton(
-              style: ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll(Colors.blue),
-                foregroundColor: WidgetStatePropertyAll(Colors.white),
+              style: const ButtonStyle(
+                backgroundColor: MaterialStatePropertyAll(Colors.blue),
+                foregroundColor: MaterialStatePropertyAll(Colors.white),
               ),
-              onPressed: _configuration != null ? _handleAddBank : null,
-              child: Text('Add Bank Account'),
+              onPressed: _handleAddBank,
+              child: const Text('Add Bank Account'),
             ),
           ],
         ),

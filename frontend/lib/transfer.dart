@@ -148,19 +148,26 @@ class _TransferState extends State<Transfer> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Transfer Funds'),
+        title: const Text('Transfer Funds'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
       ),
       body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
-              controller: _amountController,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: "Enter Amount",
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: "Enter Amount",
+                ),
               ),
             ),
             ElevatedButton(

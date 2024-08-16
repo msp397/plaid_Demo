@@ -22,17 +22,19 @@ class _BalanceCheckState extends State<BalanceCheck> {
   }
 
   Future<void> _createPublicToken() async {
-    setState(() {
-      _isLoading = true;
-    });
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.2.85:3000/balance/balance-auth'),
+        Uri.parse('https://sandbox.plaid.com/link/token/create'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
+          "client_name": "Torus Pay",
           "institution_id": "ins_3",
           "initial_products": ["auth"],
-          "options": {"webhook": "https://www.genericwebhookurl.com/webhook"}
+          "options": {"webhook": "https://www.genericwebhookurl.com/webhook"},
+          "webhook": "https://www.genericwebhookurl.com/webhook",
+          "android_package_name": "com.example.frontend",
         }),
       );
       print(response.body);
@@ -106,12 +108,22 @@ class _BalanceCheckState extends State<BalanceCheck> {
       appBar: AppBar(
         title: const Text('Balance Check'),
         backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
       ),
       body: Center(
-        child: _isLoading
-            ? const CircularProgressIndicator()
-            : Text(
-                'Account ID: ${widget.accountId ?? 'N/A'}\nBalance: ${_balance ?? 'N/A'}'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Balance',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal),
+            ),
+            Text(
+              '${_balance ?? 'N/A'}',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/balencecheck.dart';
+import 'package:frontend/transfer.dart';
 
-class AccountInfo extends StatelessWidget {
+class AccountInfo extends StatefulWidget {
   final List<Map<String, String>> accounts;
   final Map<String, String> institution;
 
@@ -10,6 +11,33 @@ class AccountInfo extends StatelessWidget {
     required this.accounts,
     required this.institution,
   }) : super(key: key);
+
+  @override
+  _AccountInfoState createState() => _AccountInfoState();
+}
+
+class _AccountInfoState extends State<AccountInfo> {
+  String? _selectedAccountId = '1';
+
+  void _onTransferFunds() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Transfer(),
+      ),
+    );
+  }
+
+  void _onCheckBalance() {
+    if (_selectedAccountId != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BalanceCheck(accountId: _selectedAccountId),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,30 +53,44 @@ class AccountInfo extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              '${institution['name'] ?? 'N/A'}',
+              '${widget.institution['name'] ?? 'N/A'}',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: accounts.length,
+              itemCount: widget.accounts.length,
               itemBuilder: (context, index) {
-                final account = accounts[index];
+                final account = widget.accounts[index];
                 return ListTile(
+                  leading: Radio<String>(
+                    value: account['id'] ?? '',
+                    groupValue: _selectedAccountId,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedAccountId = value;
+                      });
+                    },
+                  ),
                   title: Text(account['name'] ?? 'N/A'),
-                  // subtitle: Text('ID: ${account['id'] ?? 'N/A'}'),
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BalanceCheck(
-                          accountId: account['id'],
-                        ),
-                      ),
-                    );
-                  },
                 );
               },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: _onTransferFunds,
+                  child: Text('Transfer Funds'),
+                ),
+                ElevatedButton(
+                  onPressed: _onCheckBalance,
+                  child: Text('Check Balance'),
+                ),
+              ],
             ),
           ),
         ],
