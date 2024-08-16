@@ -14,14 +14,19 @@ class BalanceCheck extends StatefulWidget {
 class _BalanceCheckState extends State<BalanceCheck> {
   bool _isLoading = false;
   String? _balance;
+  String _error = '';
 
   @override
   void initState() {
     super.initState();
-    _createPublicToken();
+    _createLinkToken();
   }
 
-  Future<void> _createPublicToken() async {
+  Future<void> _createLinkToken() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final response = await http.post(
         Uri.parse('https://sandbox.plaid.com/link/token/create'),
@@ -37,62 +42,100 @@ class _BalanceCheckState extends State<BalanceCheck> {
           "android_package_name": "com.example.frontend",
         }),
       );
-      print(response.body);
-      print(response.statusCode);
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final linkToken = data['public_token'];
-        await _exchangePublicToken(linkToken);
+        final linkToken = data['link_token'];
+        await _exchangeLinkToken(linkToken);
       } else {
-        print(
-            'Failed to create public token. Status code: ${response.statusCode}');
+        setState(() {
+          _error =
+              'Failed to create link token. Status code: ${response.statusCode}';
+        });
       }
     } catch (e) {
-      print('Error: $e');
+      setState(() {
+        _error = 'Error: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  Future<void> _exchangePublicToken(String publicToken) async {
+  Future<void> _exchangeLinkToken(String public_token) async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.2.85:3000/balance/exchange-public-token'),
+        Uri.parse('https://sandbox.plaid.com/item/public_token/exchange'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"public_token": publicToken}),
+        body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
+          "public_token": public_token,
+        }),
       );
-      print(response.body);
-      print(response.statusCode);
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final accessToken = data['access_token'];
         await _getBalance(accessToken);
       } else {
-        print(
-            'Failed to exchange public token. Status code: ${response.statusCode}');
+        setState(() {
+          _error =
+              'Failed to exchange link token. Status code: ${response.statusCode}';
+        });
       }
     } catch (e) {
-      print('Error: $e');
+      setState(() {
+        _error = 'Error: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _getBalance(String accessToken) async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.2.85:3000/balance/check-balance'),
+        Uri.parse('https://sandbox.plaid.com/accounts/balance/get'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"access_token": accessToken}),
+        body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
+          "access_token": accessToken
+        }),
       );
-      print(response.body);
-      print(response.statusCode);
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final balance = data['accounts'][0]['balances']['available'];
         setState(() {
-          _balance = data['balance'];
+          _balance = balance.toString();
         });
       } else {
-        print('Failed to get balance. Status code: ${response.statusCode}');
+        setState(() {
+          _error = 'Failed to get balance. Status code: ${response.statusCode}';
+        });
       }
     } catch (e) {
-      print('Error: $e');
+      setState(() {
+        _error = 'Error: $e';
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -111,19 +154,31 @@ class _BalanceCheckState extends State<BalanceCheck> {
         foregroundColor: Colors.white,
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Balance',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal),
-            ),
-            Text(
-              '${_balance ?? 'N/A'}',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+        child: _isLoading
+            ? const CircularProgressIndicator()
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Balance',
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.normal),
+                  ),
+                  Text(
+                    _balance ?? 'N/A',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  if (_error.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        _error,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                ],
+              ),
       ),
     );
   }

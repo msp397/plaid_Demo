@@ -76,35 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _createTransferIntent() async {
-    try {
-      final response = await http.post(
-        Uri.parse('https://sandbox.plaid.com/transfer/intents/create'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "client_id": "66b59ad4f271e2001a12e6ca",
-          "secret": "3cea473d8ef5b0d0657275a727fece",
-          "account_id": "3gE5gnRzNyfXpBK5wEEKcymJ5albGVUqg77gr",
-          "mode": "PAYMENT",
-          "amount": "12.34",
-          "description": "Desc",
-          "ach_class": "ppd",
-          "origination_account_id": "9853defc-e703-463d-86b1-dc0607a45359",
-          "user": {"legal_name": "Anne Charleston"}
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final transferIntent = jsonDecode(response.body);
-        print('Transfer Intent Created: $transferIntent');
-      } else {
-        throw Exception('Failed to create transfer intent');
-      }
-    } catch (e) {
-      print('Error: $e');
-    }
-  }
-
   void _setupPlaidLinkStreams() {
     PlaidLink.onSuccess.listen((success) {
       print('Account Added Successfully');
@@ -119,15 +90,15 @@ class _HomeScreenState extends State<HomeScreen> {
         'id': success.metadata.institution?.id ?? 'N/A',
         'name': success.metadata.institution?.name ?? 'N/A',
       };
-      // Navigator.pushReplacement(
-      //   // ignore: use_build_context_synchronously
-      //   context,
-      //   MaterialPageRoute(
-      //       builder: (context) => AccountInfo(
-      //             accounts: accounts,
-      //             institution: institution,
-      //           )),
-      // );
+      Navigator.pushReplacement(
+        // ignore: use_build_context_synchronously
+        context,
+        MaterialPageRoute(
+            builder: (context) => AccountInfo(
+                  accounts: accounts,
+                  institution: institution,
+                )),
+      );
     });
 
     PlaidLink.onExit.listen((exit) {
@@ -140,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _setupPlaidLinkWeb() {
-    //   // Check if Plaid script is already included
+    // Check if Plaid script is already included
     //   if (html.document.querySelector(
     //           'script[src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"]') ==
     //       null) {
