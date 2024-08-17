@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:frontend/utils/urls.dart';
 
 class Transactions extends StatefulWidget {
   const Transactions({super.key});
@@ -17,32 +16,24 @@ class _TransactionsState extends State<Transactions> {
   @override
   void initState() {
     super.initState();
-    _transactionPublicToken();
-    _exchangePublicToken('YOUR_LINK_TOKEN_HERE');
-    _getTransactions('YOUR_ACCESS_TOKEN_HERE');
+    _fetchTransactions();
   }
 
-  Future<void> _transactionPublicToken() async {
+  Future<void> _fetchTransactions() async {
     try {
-      final response = await http.post(
-        Uri.parse(URLS.base_url + URLS.create_link_token),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "institution_id": "ins_3",
-          "initial_products": ["transactions"],
-          "options": {"webhook": "https://www.genericwebhookurl.com/webhook"}
-        }),
-      );
-      print(response.body);
-      print(response.statusCode);
-      if (response.statusCode == 200) {
-        final linkToken = jsonDecode(response.body)['link_token'];
-        print('Link Token: $linkToken');
-
-        await _exchangePublicToken(linkToken);
+      final publicToken = await _createPublicToken();
+      if (publicToken != null) {
+        final accessToken = await _exchangePublicToken(publicToken);
+        if (accessToken != null) {
+          await _getTransactions(accessToken);
+        } else {
+          setState(() {
+            _message = 'Failed to obtain access token';
+          });
+        }
       } else {
         setState(() {
-          _message = 'Failed to create link token';
+          _message = 'Failed to create public token';
         });
       }
     } catch (e) {
@@ -52,59 +43,89 @@ class _TransactionsState extends State<Transactions> {
     }
   }
 
-  Future<void> _exchangePublicToken(String linkToken) async {
-    const String publicToken = 'YOUR_PUBLIC_TOKEN_HERE';
-
+  Future<String?> _createPublicToken() async {
     try {
       final response = await http.post(
-        Uri.parse(URLS.base_url + URLS.create_public_token),
+        Uri.parse('https://sandbox.plaid.com/sandbox/public_token/create'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"public_token": publicToken}),
+        body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
+          "institution_id": "ins_20",
+          "initial_products": ["transactions"],
+          "options": {"webhook": "https://www.genericwebhookurl.com/webhook"}
+        }),
       );
-      print(response.body);
-      print(response.statusCode);
+
       if (response.statusCode == 200) {
-        final accessToken = jsonDecode(response.body)['access_token'];
-        print('Access Token: $accessToken');
-        // Proceed to get transactions
-        await _getTransactions(accessToken);
+        final responseBody = jsonDecode(response.body);
+        return responseBody['public_token'];
       } else {
-        setState(() {
-          _message = 'Failed to exchange public token';
-        });
+        print('Error creating public token: ${response.body}');
+        return null;
       }
     } catch (e) {
-      setState(() {
-        _message = 'Error: $e';
-      });
+      print('Error creating public token: $e');
+      return null;
+    }
+  }
+
+  Future<String?> _exchangePublicToken(String publicToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://sandbox.plaid.com/item/public_token/exchange'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
+          "public_token": publicToken
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        return responseBody['access_token'];
+      } else {
+        print('Error exchanging public token: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error exchanging public token: $e');
+      return null;
     }
   }
 
   Future<void> _getTransactions(String accessToken) async {
     try {
       final response = await http.post(
-        Uri.parse(URLS.base_url + URLS.get_transactions),
+        Uri.parse('https://sandbox.plaid.com/transactions/get'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
+          "client_id": "66b59ad4f271e2001a12e6ca",
+          "secret": "3cea473d8ef5b0d0657275a727fece",
           "access_token": accessToken,
           "start_date": "2017-01-01",
-          "end_date": "2018-01-01",
-          "options": {"count": 250, "offset": 100}
+          "end_date": "2024-08-17",
+          "options": {"count": 250, "offset": 0}
         }),
       );
       print(response.body);
       print(response.statusCode);
+
       if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
         setState(() {
-          _transactions = jsonDecode(response.body)['transactions'];
+          _transactions = responseBody['transactions'] ?? [];
           _message = 'Transactions fetched successfully!';
         });
       } else {
+        print('Error fetching transactions: ${response.body}');
         setState(() {
           _message = 'Failed to fetch transactions';
         });
       }
     } catch (e) {
+      print('Error fetching transactions: $e');
       setState(() {
         _message = 'Error: $e';
       });
@@ -126,17 +147,57 @@ class _TransactionsState extends State<Transactions> {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: ListView.builder(
-                itemCount: _transactions.length,
-                itemBuilder: (context, index) {
-                  final transaction = _transactions[index];
-                  return ListTile(
-                    title: Text(transaction['name'] ?? 'Unknown'),
-                    subtitle: Text(transaction['date'] ?? 'No date'),
-                    trailing: Text(transaction['amount'].toString() ?? '0.0'),
-                  );
-                },
-              ),
+              child: _transactions.isEmpty
+                  ? Center(child: Text('No transactions available'))
+                  : ListView.builder(
+                      itemCount: _transactions.length,
+                      itemBuilder: (context, index) {
+                        final transaction = _transactions[index];
+                        final category =
+                            (transaction['category'] as List<dynamic>?)
+                                        ?.isNotEmpty ==
+                                    true
+                                ? transaction['category'][0]
+                                : 'Unknown';
+                        final amount = transaction['amount'] ?? 0.0;
+                        final date = transaction['date'] ?? 'No date';
+
+                        return Card(
+                          elevation: 4,
+                          margin: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(16.0),
+                            title: Text(
+                              transaction['name'] ?? 'Unknown',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  date,
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                                const SizedBox(height: 4.0),
+                                Chip(
+                                  label: Text(
+                                    category,
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  backgroundColor: Colors.blue,
+                                ),
+                              ],
+                            ),
+                            trailing: Text(
+                              '\$${amount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
