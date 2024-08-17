@@ -36,10 +36,8 @@ class _PaymentState extends State<Payment> {
 
   void _setupPlaidLinkStreams() {
     PlaidLink.onSuccess.listen((success) {
-      setState(() {
-        print(success.publicToken.toString());
-      });
-      _authorizeTransfer();
+      print(success);
+      // _authorizeTransfer();
     });
 
     PlaidLink.onExit.listen((exit) {
@@ -51,30 +49,44 @@ class _PaymentState extends State<Payment> {
     });
   }
 
+  String _formatAmount(String amount) {
+    try {
+      final double value = double.parse(amount);
+      return value
+          .toStringAsFixed(2); // Ensure the amount has two decimal places
+    } catch (e) {
+      print('Error formatting amount: $e');
+      return amount; // Return original if formatting fails
+    }
+  }
+
   Future<void> _createTransferIntend() async {
     try {
+      final formattedAmount = _formatAmount(_amountController.text);
+      print(formattedAmount);
       final response = await http.post(
-        Uri.parse("https://sandbox.plaid.com/link/token/create"),
+        Uri.parse("https://sandbox.plaid.com/transfer/intent/create"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "client_id": "66b59ad4f271e2001a12e6ca",
           "secret": "3cea473d8ef5b0d0657275a727fece",
           "account_id": widget.accountId,
-          "mode": "PAYMENT",
-          "amount": _amountController.text,
+          "mode": "DISBURSEMENT",
+          "amount": formattedAmount,
           "description": _descriptionController.text,
           "ach_class": "ppd",
           "user": {"legal_name": widget.recipientName.toString()}
         }),
       );
+      print(response.body);
       if (response.statusCode == 200) {
         setState(() {
           var data = jsonDecode(response.body);
-          transferIntentId = data['authorization']['id'];
+          transferIntentId = data['transfer_intent']['id'];
           _createLinkToken();
         });
       } else {
-        print('Failed to create link token');
+        print('Failed to create transfer intent');
       }
     } catch (e) {
       print('Error: $e');
@@ -90,6 +102,7 @@ class _PaymentState extends State<Payment> {
           "user": {"client_user_id": "App123"},
           "client_id": "66b59ad4f271e2001a12e6ca",
           "secret": "3cea473d8ef5b0d0657275a727fece",
+          "access_token": widget.accessToken,
           "client_name": "Torus Pay",
           "products": ["transfer"],
           "transfer": {"intent_id": transferIntentId},
@@ -100,6 +113,7 @@ class _PaymentState extends State<Payment> {
           'link_customization_name': 'tpay'
         }),
       );
+      print(response.body);
       if (response.statusCode == 200) {
         setState(() {
           linkToken = jsonDecode(response.body)['link_token'];
@@ -114,79 +128,81 @@ class _PaymentState extends State<Payment> {
     }
   }
 
-  Future<void> _authorizeTransfer() async {
-    try {
-      final response = await http.post(
-        Uri.parse("https://sandbox.plaid.com/transfer/authorization/create"),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "client_id": "66b59ad4f271e2001a12e6ca",
-          "secret": "3cea473d8ef5b0d0657275a727fece",
-          "access_token": widget.accessToken,
-          "account_id": widget.accountId,
-          "type": "credit",
-          "network": "ach",
-          "amount": _amountController.text,
-          "ach_class": "ppd",
-          "user": {
-            "legal_name": widget.recipientName,
-            "email_address": "test@email.com",
-            "phone_number": null,
-            "address": {
-              "street": "test",
-              "city": "test",
-              "region": "CA",
-              "postal_code": "94053",
-              "country": "US"
-            }
-          },
-        }),
-      );
-      print(response.body);
-      print(response.statusCode);
-      if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
-        if (data['authorization']['decision'] == "approved") {
-          setState(() {
-            authId = data['authorization']['id'];
-            _initiateTransfer();
-          });
-        }
-      } else {
-        throw Exception('Failed to authorize transfer');
-      }
-    } catch (e) {
-      print('Error: $e');
-    }
-  }
+  // Future<void> _authorizeTransfer() async {
+  //   try {
+  //     final formattedAmount = _formatAmount(_amountController.text);
+  //     final response = await http.post(
+  //       Uri.parse("https://sandbox.plaid.com/transfer/authorization/create"),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({
+  //         "client_id": "66b59ad4f271e2001a12e6ca",
+  //         "secret": "3cea473d8ef5b0d0657275a727fece",
+  //         "access_token": widget.accessToken,
+  //         "account_id": widget.accountId,
+  //         "type": "credit",
+  //         "network": "ach",
+  //         "amount": formattedAmount,
+  //         "ach_class": "ppd",
+  //         "user": {
+  //           "legal_name": widget.recipientName,
+  //           "email_address": "test@email.com",
+  //           "phone_number": null,
+  //           "address": {
+  //             "street": "test",
+  //             "city": "test",
+  //             "region": "CA",
+  //             "postal_code": "94053",
+  //             "country": "US"
+  //           }
+  //         },
+  //       }),
+  //     );
+  //     print(response.body);
+  //     print(response.statusCode);
+  //     if (response.statusCode == 200) {
+  //       var data = jsonDecode(response.body);
+  //       if (data['authorization']['decision'] == "approved") {
+  //         setState(() {
+  //           authId = data['authorization']['id'];
+  //           _initiateTransfer();
+  //         });
+  //       }
+  //     } else {
+  //       throw Exception('Failed to authorize transfer');
+  //     }
+  //   } catch (e) {
+  //     print('Error: $e');
+  //   }
+  // }
 
-  Future<void> _initiateTransfer() async {
-    try {
-      final response = await http.post(
-        Uri.parse("https://sandbox.plaid.com/transfer/create"),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "client_id": "66b59ad4f271e2001a12e6ca",
-          "secret": "3cea473d8ef5b0d0657275a727fece",
-          "idempotency_key": "test123",
-          "access_token": widget.accessToken,
-          "account_id": widget.accountId,
-          "amount": _amountController.text,
-          "description": _descriptionController.text,
-          "metadata": {},
-          "authorization_id": authId
-        }),
-      );
-      print(response.body);
-      print(response.statusCode);
-      if (response.statusCode == 200) {
-      } else {
-        throw Exception('Failed to initiate transfer');
-      }
-    } catch (e) {
-      print('Error: $e');
-    }
-  }
+  // Future<void> _initiateTransfer() async {
+  //   try {
+  //     final formattedAmount = _formatAmount(_amountController.text);
+  //     final response = await http.post(
+  //       Uri.parse("https://sandbox.plaid.com/transfer/create"),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({
+  //         "client_id": "66b59ad4f271e2001a12e6ca",
+  //         "secret": "3cea473d8ef5b0d0657275a727fece",
+  //         "idempotency_key": "test123",
+  //         "access_token": widget.accessToken,
+  //         "account_id": widget.accountId,
+  //         "amount": formattedAmount,
+  //         "description": _descriptionController.text,
+  //         "metadata": {},
+  //         "authorization_id": authId
+  //       }),
+  //     );
+  //     print(response.body);
+  //     print(response.statusCode);
+  //     if (response.statusCode == 200) {
+  //     } else {
+  //       throw Exception('Failed to initiate transfer');
+  //     }
+  //   } catch (e) {
+  //     print('Error: $e');
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +236,7 @@ class _PaymentState extends State<Payment> {
                 labelText: 'Enter a description',
                 border: OutlineInputBorder(),
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.name,
               textAlign: TextAlign.center,
             ),
             const Spacer(),
