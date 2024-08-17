@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/balencecheck.dart';
-import 'package:frontend/transfer.dart';
+import 'package:frontend/transferui.dart';
 
 class AccountInfo extends StatefulWidget {
   final List<Map<String, String>> accounts;
@@ -24,7 +24,7 @@ class _AccountInfoState extends State<AccountInfo> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const Transfer(),
+          builder: (context) => const TransferUI(),
         ),
       );
     }
@@ -86,7 +86,7 @@ class _AccountInfoState extends State<AccountInfo> {
               children: [
                 ElevatedButton(
                   onPressed: _onTransferFunds,
-                  child: const Text('Transfer Funds'),
+                  child: const Text('Transfer Money'),
                 ),
                 ElevatedButton(
                   onPressed: _onCheckBalance,
