@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/balance.dart';
 import 'package:frontend/balencecheck.dart';
+import 'package:frontend/transactions.dart';
 import 'package:frontend/transferui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AccountInfo extends StatefulWidget {
   final List<Map<String, String>> accounts;
@@ -17,28 +20,37 @@ class AccountInfo extends StatefulWidget {
 }
 
 class _AccountInfoState extends State<AccountInfo> {
-  String? _selectedAccountId = '';
+  late SharedPreferences prefs;
+  final String _selectedAccountId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    initSharedPrefs();
+  }
+
+  void initSharedPrefs() async {
+    prefs = await SharedPreferences.getInstance();
+  }
 
   void _onTransferFunds() {
-    if (_selectedAccountId!.isNotEmpty) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const TransferUI(),
-        ),
-      );
-    }
+    if (_selectedAccountId!.isNotEmpty) {}
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TransferUI(),
+      ),
+    );
   }
 
   void _onCheckBalance() {
-    if (_selectedAccountId!.isNotEmpty) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BalanceCheck(accountId: _selectedAccountId),
-        ),
-      );
-    }
+    if (_selectedAccountId!.isNotEmpty) {}
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BalanceCheck(),
+      ),
+    );
   }
 
   @override
@@ -65,34 +77,72 @@ class _AccountInfoState extends State<AccountInfo> {
               itemBuilder: (context, index) {
                 final account = widget.accounts[index];
                 return ListTile(
-                  leading: Radio<String>(
-                    value: account['id'] ?? '',
-                    groupValue: _selectedAccountId,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedAccountId = value;
-                      });
-                    },
+                  // leading: Radio<String>(
+                  //   value: account['id'] ?? '',
+                  //   groupValue: _selectedAccountId,
+                  //   onChanged: (value) {
+                  //     setState(() {
+                  //       _selectedAccountId = value;
+                  //     });
+                  //   },
+                  // ),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${account['name']}'),
+                      Text('${account['mask']}')
+                    ],
                   ),
-                  title: Text(account['name'] ?? 'N/A'),
+                  subtitle: Text(account['type'] ?? 'NA'),
                 );
               },
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed: _onTransferFunds,
-                  child: const Text('Transfer Money'),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: _onTransferFunds,
+                    child: const Text('Transfer'),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: _onCheckBalance,
+                    child: const Text('Check Balance'),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TransactionList(
+                            accessToken: prefs.getString('access-token') ?? '',
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Transactions'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Text(
+                'This is a sandbox mode',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[400],
                 ),
-                ElevatedButton(
-                  onPressed: _onCheckBalance,
-                  child: const Text('Check Balance'),
-                ),
-              ],
+              ),
             ),
           ),
         ],

@@ -13,7 +13,7 @@ class BalanceCheck extends StatefulWidget {
 
 class _BalanceCheckState extends State<BalanceCheck> {
   bool _isLoading = false;
-  String? _balance;
+  List<Map<String, dynamic>> _accounts = [];
 
   @override
   void initState() {
@@ -46,8 +46,10 @@ class _BalanceCheckState extends State<BalanceCheck> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final linkToken = data['link_token'];
-        await _getpulicToken();
-      } else {}
+        await _getPublicToken();
+      } else {
+        throw Exception('Failed to create link token');
+      }
     } catch (e) {
       throw Exception('Failed to create link token');
     } finally {
@@ -59,7 +61,7 @@ class _BalanceCheckState extends State<BalanceCheck> {
     }
   }
 
-  Future<void> _getpulicToken() async {
+  Future<void> _getPublicToken() async {
     setState(() {
       _isLoading = true;
     });
@@ -81,9 +83,11 @@ class _BalanceCheckState extends State<BalanceCheck> {
         final data = jsonDecode(response.body);
         final publicToken = data['public_token'];
         _exchangePublicToken(publicToken);
+      } else {
+        throw Exception('Failed to create public token');
       }
     } catch (e) {
-      throw Exception('Failed to create link token');
+      throw Exception('Failed to create public token');
     } finally {
       if (mounted) {
         setState(() {
@@ -117,7 +121,7 @@ class _BalanceCheckState extends State<BalanceCheck> {
         throw Exception('Failed to exchange public token');
       }
     } catch (e) {
-      throw Exception('Error Exchange token');
+      throw Exception('Error exchanging token');
     } finally {
       if (mounted) {
         setState(() {
@@ -134,7 +138,7 @@ class _BalanceCheckState extends State<BalanceCheck> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://sandbox.plaid.com/accounts/get'),
+        Uri.parse('https://sandbox.plaid.com/auth/get'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "client_id": "66b59ad4f271e2001a12e6ca",
@@ -147,36 +151,18 @@ class _BalanceCheckState extends State<BalanceCheck> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final accounts = data['accounts'] as List<dynamic>? ?? [];
-
-        String? accountBalance;
-
-        for (var account in accounts) {
-          if (account is Map<String, dynamic> &&
-              account['account_id'] == widget.accountId) {
-            final balances = account['balances'] as Map<String, dynamic>?;
-            if (balances != null) {
-              final availableBalance = balances['available'];
-              accountBalance = availableBalance?.toString() ?? 'N/A';
-            }
-            break;
-          }
-        }
-
+        final accounts = data['accounts'] as List<dynamic>;
         setState(() {
-          _balance =
-              accountBalance ?? 'Account not found or balance unavailable';
+          _accounts = accounts.cast<Map<String, dynamic>>();
         });
       } else {
-        // Handle non-200 status codes
         throw Exception(
             'Failed to get balance. Status code: ${response.statusCode}');
       }
     } catch (e) {
-      // Log the error and show a friendly message
       print('Error getting balance: $e');
       setState(() {
-        _balance = 'Error getting balance. Please try again.';
+        _accounts = [];
       });
     } finally {
       if (mounted) {
@@ -198,21 +184,24 @@ class _BalanceCheckState extends State<BalanceCheck> {
       body: Center(
         child: _isLoading
             ? const CircularProgressIndicator()
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Balance',
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.normal),
+            : _accounts.isEmpty
+                ? const Text(
+                    '',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  )
+                : ListView.builder(
+                    itemCount: 2,
+                    itemBuilder: (context, index) {
+                      final account = _accounts[index];
+                      final balance = account['balances']['current'] ?? 0;
+                      final name = account['name'] ?? 'Unknown Account';
+                      return ListTile(
+                        title: Text(name),
+                        subtitle:
+                            Text('Balance: \$${balance.toStringAsFixed(2)}'),
+                      );
+                    },
                   ),
-                  Text(
-                    _balance ?? 'N/A',
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
       ),
     );
   }

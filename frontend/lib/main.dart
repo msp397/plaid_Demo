@@ -3,13 +3,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:frontend/account_info.dart';
-import 'package:frontend/transactions.dart';
-import 'package:frontend/transferui.dart';
 import 'package:http/http.dart' as http;
 import 'package:plaid_flutter/plaid_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized;
   runApp(const MyApp());
 }
 
@@ -21,8 +20,8 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(
       title: 'TPay',
       debugShowCheckedModeBanner: false,
-      // home: HomeScreen(),
-      home: Transactions(),
+      home: HomeScreen(),
+      //home: Transactions(),
     );
   }
 }
@@ -129,6 +128,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return {
             'id': account.id,
             'name': account.name,
+            'mask': account.mask.toString(),
+            'type': account.type
           };
         }).toList();
 

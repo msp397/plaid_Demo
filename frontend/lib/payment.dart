@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frontend/account_info.dart';
+import 'package:frontend/balance.dart';
 import 'package:plaid_flutter/plaid_flutter.dart';
 import 'package:http/http.dart' as http;
 
@@ -28,15 +30,29 @@ class _PaymentState extends State<Payment> {
   String authId = '';
 
   @override
+  void initState() {
+    super.initState();
+    _setupPlaidLinkStreams();
+  }
+
+  @override
   void dispose() {
     _amountController.dispose();
     super.dispose();
-    _setupPlaidLinkStreams();
   }
 
   void _setupPlaidLinkStreams() {
     PlaidLink.onSuccess.listen((success) {
       print(success);
+      Navigator.push(
+        // ignore: use_build_context_synchronously
+        context,
+        MaterialPageRoute(
+          builder: (context) => const TransactionList(
+            accessToken: '',
+          ),
+        ),
+      );
       // _authorizeTransfer();
     });
 
@@ -63,7 +79,6 @@ class _PaymentState extends State<Payment> {
   Future<void> _createTransferIntend() async {
     try {
       final formattedAmount = _formatAmount(_amountController.text);
-      print(formattedAmount);
       final response = await http.post(
         Uri.parse("https://sandbox.plaid.com/transfer/intent/create"),
         headers: {'Content-Type': 'application/json'},
@@ -71,7 +86,7 @@ class _PaymentState extends State<Payment> {
           "client_id": "66b59ad4f271e2001a12e6ca",
           "secret": "3cea473d8ef5b0d0657275a727fece",
           "account_id": widget.accountId,
-          "mode": "DISBURSEMENT",
+          "mode": "PAYMENT",
           "amount": formattedAmount,
           "description": _descriptionController.text,
           "ach_class": "ppd",
@@ -85,6 +100,7 @@ class _PaymentState extends State<Payment> {
           transferIntentId = data['transfer_intent']['id'];
           _createLinkToken();
         });
+        print('transfer intent ' + transferIntentId);
       } else {
         print('Failed to create transfer intent');
       }
