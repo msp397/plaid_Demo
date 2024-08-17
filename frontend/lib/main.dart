@@ -175,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bank transfer via TPay'),
+        title: const Text('Bank transfer via Torus Pay'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
