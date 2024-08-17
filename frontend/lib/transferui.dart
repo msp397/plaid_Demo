@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:frontend/payment.dart'; // Ensure this import is correct based on your file structure
+import 'package:frontend/payment.dart';
+import 'package:plaid_flutter/plaid_flutter.dart';
 
 class TransferUI extends StatefulWidget {
   const TransferUI({super.key});
@@ -13,6 +14,8 @@ class TransferUI extends StatefulWidget {
 class _TransferUIState extends State<TransferUI> {
   final TextEditingController _recipientController = TextEditingController();
   List<String> _accountNumbers = [];
+  Map<String, String> _accountNumberToId =
+      {}; // Maps account numbers to account IDs
   String? _selectedAccountNumber;
   String? _accessToken;
 
@@ -98,6 +101,10 @@ class _TransferUIState extends State<TransferUI> {
             _accountNumbers = accounts
                 .map((account) => account['account'] as String)
                 .toList();
+            _accountNumberToId = {
+              for (var item in accounts)
+                item['account'] as String: item['account_id'] as String
+            };
           });
         }
       } else {
@@ -127,9 +134,23 @@ class _TransferUIState extends State<TransferUI> {
   }
 
   void _navigateToNextScreen() {
+    if (_selectedAccountNumber == null || _recipientController.text.isEmpty) {
+      _showErrorDialog(
+          'Please select an account and enter the recipient name.');
+      return;
+    }
+
+    final accountId = _accountNumberToId[_selectedAccountNumber];
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const Payment()),
+      MaterialPageRoute(
+        builder: (context) => Payment(
+          accountId: accountId ?? '',
+          recipientName: _recipientController.text,
+          accessToken: _accessToken!,
+        ),
+      ),
     );
   }
 
@@ -162,7 +183,7 @@ class _TransferUIState extends State<TransferUI> {
                     _selectedAccountNumber = newValue;
                   });
                 },
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Account Number',
                 ),
@@ -172,13 +193,13 @@ class _TransferUIState extends State<TransferUI> {
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: TextField(
                 controller: _recipientController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Recipient Name',
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _navigateToNextScreen,
               child: const Text('Transfer'),

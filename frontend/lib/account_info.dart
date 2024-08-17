@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/balencecheck.dart';
 import 'package:frontend/transfer.dart';
-import 'package:frontend/transfer_screen.dart';
 
 class AccountInfo extends StatefulWidget {
   final List<Map<String, String>> accounts;

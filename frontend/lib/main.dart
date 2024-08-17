@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
       title: 'TPay',
       debugShowCheckedModeBanner: false,
       // home: HomeScreen(),
-      home: TransferUI(),
+      home: HomeScreen(),
     );
   }
 }
